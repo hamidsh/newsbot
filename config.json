@@ -1,0 +1,5 @@
+{
+  "RSS_URL": "http://46.249.98.217:8080",
+  "MAX_TWEETS": 5,
+  "DATABASE_URL": "sqlite:///newsbot.db"
+}
