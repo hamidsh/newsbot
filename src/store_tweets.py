@@ -39,7 +39,7 @@ def fetch_and_store_tweets(rss_url, search_query="direct"):
                 "link": str(tweet.get("link", "")),
                 "keywords": search_query  # مقدار پیش‌فرض اگر جستجویی نبوده باشد "direct" ثبت شود
             }
-            save_tweet(db, tweet_data, search_query)
+            save_tweet(db, tweet_data)
         except Exception as e:
             print(f"❌ خطا در پردازش توییت {tweet.get('tweet_id', 'N/A')}: {e}")
 
