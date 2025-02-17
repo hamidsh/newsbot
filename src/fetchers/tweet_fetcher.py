@@ -3,12 +3,14 @@ import re
 from bs4 import BeautifulSoup
 
 class TweetFetcher:
-    def __init__(self, rss_url):
+    def __init__(self, rss_url, search_query):
         """
         دریافت و پردازش توییت‌ها از یک آدرس RSS (ورودی باید لینک فید باشد)
         :param rss_url: لینک RSS از سرور Nitter
+        :param search_query: عبارت جستجو
         """
         self.rss_url = rss_url
+        self.search_query = search_query  # ✅ حالا مقدار جستجو ذخیره می‌شود.
 
     def extract_stats(self, description):
         """
@@ -25,16 +27,17 @@ class TweetFetcher:
             }
         return {"likes": 0, "retweets": 0, "replies": 0, "quotes": 0}
 
-    def fetch_tweets(self, max_tweets=10):
+    def fetch_tweets(self, max_tweets=None):
         """
         دریافت و پردازش توییت‌ها از RSS
-        :param max_tweets: تعداد حداکثر توییت‌ها برای پردازش
+        :param max_tweets: تعداد حداکثر توییت‌ها برای پردازش (اگر None باشد، همه‌ی توییت‌ها دریافت می‌شوند)
         :return: لیست دیکشنری شامل اطلاعات توییت‌ها
         """
         feed = feedparser.parse(self.rss_url)
+        entries = feed.entries if max_tweets is None else feed.entries[:max_tweets]
 
         tweets = []
-        for entry in feed.entries[:max_tweets]:
+        for entry in entries:
             stats = self.extract_stats(entry.description)
             soup = BeautifulSoup(entry.description, "html.parser")
             clean_text = soup.get_text()
@@ -53,7 +56,9 @@ class TweetFetcher:
                 "quotes": stats["quotes"],
                 "pubDate": entry.published,
                 "tweet_id": tweet_id,
-                "link": modified_link
+                "link": modified_link,
+                "search_query": self.search_query  # ✅ کلمه کلیدی اضافه شد
             })
 
+        print(f"✅ {len(tweets)} توییت دریافت شد.")
         return tweets

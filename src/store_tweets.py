@@ -1,24 +1,25 @@
 from src.fetchers.tweet_fetcher import TweetFetcher
 from src.database.database import save_tweet, SessionLocal
+from src.config import DATABASE_URL
 from datetime import datetime
 import email.utils
 import re
 
-
 def clean_text(text):
     """حذف تگ‌های HTML و نرمال‌سازی متن توییت"""
     clean = re.sub(r"<.*?>", "", text)
-    return clean.strip()
+    clean = clean.strip()
+    return clean
 
-def fetch_and_store_tweets(rss_url, search_query="direct"):
+def fetch_and_store_tweets(rss_url, search_query):
     """
-    دریافت و ذخیره توییت‌ها از آدرس RSS مشخص‌شده، همراه با ثبت کلمات کلیدی
-    :param rss_url: لینک فید RSS
-    :param search_query: کلمه‌ی کلیدی که این توییت از طریق آن دریافت شده است (پیش‌فرض: "direct" برای دریافت از کاربر)
+    دریافت و ذخیره توییت‌ها از Nitter RSS
+    :param rss_url: لینک RSS برای دریافت توییت‌ها
+    :param search_query: کلمه کلیدی جستجو
     """
     print(f"📡 دریافت توییت‌ها از: {rss_url}")
 
-    fetcher = TweetFetcher(rss_url)
+    fetcher = TweetFetcher(rss_url, search_query)  # ✅ مقدار `search_query` را ارسال کن.
     tweets = fetcher.fetch_tweets()
 
     db = SessionLocal()
@@ -37,7 +38,7 @@ def fetch_and_store_tweets(rss_url, search_query="direct"):
                 "quotes": int(tweet.get("quotes", 0)),
                 "pubDate": pub_date,
                 "link": str(tweet.get("link", "")),
-                "keywords": search_query  # مقدار پیش‌فرض اگر جستجویی نبوده باشد "direct" ثبت شود
+                "search_query": search_query  # ✅ حالا ذخیره‌ی کلمه کلیدی در دیتابیس
             }
             save_tweet(db, tweet_data)
         except Exception as e:
@@ -45,9 +46,3 @@ def fetch_and_store_tweets(rss_url, search_query="direct"):
 
     db.close()
     print("✅ ذخیره‌سازی توییت‌ها کامل شد.")
-
-
-# اجرای مستقل تست با مقدار پیش‌فرض
-# if __name__ == "__main__":
-#     test_rss_url = "http://46.249.98.217:8080/elonmusk/rss"  # مقدار پیش‌فرض برای تست
-#     fetch_and_store_tweets(test_rss_url)

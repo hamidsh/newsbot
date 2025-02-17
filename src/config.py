@@ -25,7 +25,9 @@ RETRY_INTERVAL = int(CONFIG.get("retry_interval", 300))
 
 # **پیکربندی پایگاه داده**
 DATABASE_URL = CONFIG.get("DATABASE_URL", "sqlite:///newsbot.db")
-MAX_TWEETS = int(CONFIG.get("MAX_TWEETS", 5))
+
+USE_RECENT = CONFIG.get("use_recent", False)  # مقداردهی صحیح اینجا انجام می‌شود
+
 
 # **چاپ وضعیت تنظیمات برای بررسی صحت بارگذاری**
-print(f"📌 تنظیمات بارگذاری شد: Nitter Servers = {NITTER_SERVERS}, Max Tweets = {MAX_TWEETS}, DB = {DATABASE_URL}")
+print(f"📌 تنظیمات بارگذاری شد: Nitter Servers = {NITTER_SERVERS}, DB = {DATABASE_URL}")
