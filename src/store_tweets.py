@@ -10,11 +10,11 @@ def clean_text(text):
     clean = re.sub(r"<.*?>", "", text)
     return clean.strip()
 
-
-def fetch_and_store_tweets(rss_url):
+def fetch_and_store_tweets(rss_url, search_query="direct"):
     """
-    دریافت و ذخیره توییت‌ها از آدرس RSS مشخص‌شده
-    :param rss_url: لینک فید RSS برای دریافت توییت‌ها
+    دریافت و ذخیره توییت‌ها از آدرس RSS مشخص‌شده، همراه با ثبت کلمات کلیدی
+    :param rss_url: لینک فید RSS
+    :param search_query: کلمه‌ی کلیدی که این توییت از طریق آن دریافت شده است (پیش‌فرض: "direct" برای دریافت از کاربر)
     """
     print(f"📡 دریافت توییت‌ها از: {rss_url}")
 
@@ -36,9 +36,10 @@ def fetch_and_store_tweets(rss_url):
                 "replies": int(tweet.get("replies", 0)),
                 "quotes": int(tweet.get("quotes", 0)),
                 "pubDate": pub_date,
-                "link": str(tweet.get("link", ""))
+                "link": str(tweet.get("link", "")),
+                "keywords": search_query  # مقدار پیش‌فرض اگر جستجویی نبوده باشد "direct" ثبت شود
             }
-            save_tweet(db, tweet_data)
+            save_tweet(db, tweet_data, search_query)
         except Exception as e:
             print(f"❌ خطا در پردازش توییت {tweet.get('tweet_id', 'N/A')}: {e}")
 
