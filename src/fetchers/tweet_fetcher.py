@@ -1,59 +1,59 @@
-# src/fetchers/tweet_fetcher.py
-import requests
-from datetime import datetime
-from src.models import session, Post
+import feedparser
+import re
+from bs4 import BeautifulSoup
 
-# URL سرور Nitter (در صورت خرابی، از سرور جایگزین استفاده کنید)
-NITTER_URL = "https://nitter.net"
+class TweetFetcher:
+    def __init__(self, rss_url):
+        """
+        دریافت و پردازش توییت‌ها از یک آدرس RSS (ورودی باید لینک فید باشد)
+        :param rss_url: لینک RSS از سرور Nitter
+        """
+        self.rss_url = rss_url
 
-def fetch_tweets(username, count=5):
-    """دریافت توییت‌های یک کاربر از Nitter"""
-    url = f"{NITTER_URL}/{username}/rss"
-    response = requests.get(url)
+    def extract_stats(self, description):
+        """
+        استخراج آمار لایک، ریتوییت، ریپلای و کوت‌ها از متن توییت
+        """
+        stats_pattern = re.compile(r"❤️ Likes: (\d+) 🔁 Retweets: (\d+) 💬 Replies: (\d+) 🗨 Quotes: (\d+)")
+        match = stats_pattern.search(description)
+        if match:
+            return {
+                "likes": int(match.group(1)),
+                "retweets": int(match.group(2)),
+                "replies": int(match.group(3)),
+                "quotes": int(match.group(4))
+            }
+        return {"likes": 0, "retweets": 0, "replies": 0, "quotes": 0}
 
-    if response.status_code != 200:
-        print(f"❌ خطا در دریافت توییت‌ها از {username}: {response.status_code}")
-        return
+    def fetch_tweets(self, max_tweets=10):
+        """
+        دریافت و پردازش توییت‌ها از RSS
+        :param max_tweets: تعداد حداکثر توییت‌ها برای پردازش
+        :return: لیست دیکشنری شامل اطلاعات توییت‌ها
+        """
+        feed = feedparser.parse(self.rss_url)
 
-    feed = response.text
+        tweets = []
+        for entry in feed.entries[:max_tweets]:
+            stats = self.extract_stats(entry.description)
+            soup = BeautifulSoup(entry.description, "html.parser")
+            clean_text = soup.get_text()
 
-    # پردازش و استخراج توییت‌ها
-    from bs4 import BeautifulSoup
-    soup = BeautifulSoup(feed, 'xml')
-    items = soup.find_all('item')[:count]
+            tweet_match = re.search(r"status/(\d+)", entry.link)
+            tweet_id = tweet_match.group(1) if tweet_match else None
+            modified_link = f"https://x.com/i/web/status/{tweet_id}" if tweet_id else entry.link
 
-    for item in items:
-        title = item.title.text
-        link = item.link.text
-        description = item.description.text
-        pub_date = item.pubDate.text
+            tweets.append({
+                "title": entry.title,
+                "username": entry.author if "author" in entry else None,
+                "text": clean_text.strip(),
+                "likes": stats["likes"],
+                "retweets": stats["retweets"],
+                "replies": stats["replies"],
+                "quotes": stats["quotes"],
+                "pubDate": entry.published,
+                "tweet_id": tweet_id,
+                "link": modified_link
+            })
 
-        # تبدیل تاریخ
-        timestamp = datetime.strptime(pub_date, '%a, %d %b %Y %H:%M:%S %Z')
-
-        # بررسی تکراری نبودن توییت
-        exists = session.query(Post).filter_by(url=link).first()
-        if exists:
-            continue
-
-        # ذخیره در دیتابیس
-        new_post = Post(
-            type='tweet',
-            source=username,
-            title=title,
-            content=description,
-            summary=description[:150],  # خلاصه ۱۵۰ کاراکتری
-            url=link,
-            timestamp=timestamp,
-            category='توییتر'
-        )
-
-        session.add(new_post)
-        print(f"✅ توییت ذخیره شد: {title}")
-
-    session.commit()
-
-# تست با یک کاربر توییتر
-if __name__ == "__main__":
-    test_username = "elonmusk"
-    fetch_tweets(test_username)
+        return tweets
